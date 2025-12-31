@@ -1,0 +1,1870 @@
+openapi: 3.0.3
+info:
+  title: DATAPOLIS PRO API
+  description: |
+    API REST para el Sistema de Gestión Integral de Comunidades y Condominios.
+    
+    ## Autenticación
+    La API utiliza tokens Bearer (Laravel Sanctum). Obtener token mediante `/api/auth/login`.
+    
+    ## Códigos de Respuesta
+    - `200` - Éxito
+    - `201` - Creado
+    - `400` - Error de validación
+    - `401` - No autenticado
+    - `403` - No autorizado
+    - `404` - No encontrado
+    - `422` - Entidad no procesable
+    - `500` - Error del servidor
+    
+    ## Cumplimiento Legal
+    - Ley 21.442 (Copropiedad Inmobiliaria)
+    - Ley 21.713 (Distribución de Ingresos)
+    - Ley 19.628 / 21.719 (Protección de Datos)
+  version: 2.5.0
+  contact:
+    name: DATAPOLIS SpA
+    email: soporte@datapolis.cl
+    url: https://datapolis.cl
+  license:
+    name: Propietario
+    url: https://datapolis.cl/licencia
+
+servers:
+  - url: http://localhost:8000/api
+    description: Desarrollo local
+  - url: https://api.datapolis.cl/api
+    description: Producción
+
+tags:
+  - name: Autenticación
+    description: Login, registro y gestión de sesión
+  - name: Dashboard
+    description: Estadísticas y resúmenes
+  - name: Edificios
+    description: Gestión de comunidades y condominios
+  - name: Unidades
+    description: Departamentos, locales, bodegas
+  - name: Gastos Comunes
+    description: Períodos, boletas, pagos, morosidad
+  - name: Arriendos
+    description: Contratos, facturas, arrendatarios
+  - name: Distribución
+    description: Distribución de ingresos (Ley 21.713)
+  - name: RRHH
+    description: Empleados y liquidaciones
+  - name: Contabilidad
+    description: Plan de cuentas, asientos, balances
+  - name: Reuniones
+    description: Asambleas y votaciones telemáticas
+  - name: Legal
+    description: Asistente legal y certificados
+  - name: Protección de Datos
+    description: ARCO+, consentimientos, brechas (Ley 21.719)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+    
+    Pagination:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        last_page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+    
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        tenant_id:
+          type: integer
+        ultimo_login:
+          type: string
+          format: date-time
+    
+    Edificio:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        rut:
+          type: string
+        direccion:
+          type: string
+        comuna:
+          type: string
+        tipo:
+          type: string
+          enum: [condominio, comunidad, edificio]
+        total_unidades:
+          type: integer
+        activo:
+          type: boolean
+    
+    Unidad:
+      type: object
+      properties:
+        id:
+          type: integer
+        edificio_id:
+          type: integer
+        numero:
+          type: string
+        tipo:
+          type: string
+          enum: [departamento, local, bodega, estacionamiento, oficina]
+        piso:
+          type: integer
+        metros_cuadrados:
+          type: number
+        prorrateo:
+          type: number
+        rol_avaluo:
+          type: string
+    
+    BoletaGC:
+      type: object
+      properties:
+        id:
+          type: integer
+        numero_boleta:
+          type: string
+        unidad_id:
+          type: integer
+        periodo_id:
+          type: integer
+        mes:
+          type: integer
+        anio:
+          type: integer
+        total_gastos_comunes:
+          type: number
+        saldo_anterior:
+          type: number
+        total_intereses:
+          type: number
+        total_a_pagar:
+          type: number
+        estado:
+          type: string
+          enum: [pendiente, parcial, pagada, anulada]
+        fecha_vencimiento:
+          type: string
+          format: date
+    
+    ContratoArriendo:
+      type: object
+      properties:
+        id:
+          type: integer
+        numero_contrato:
+          type: string
+        edificio_id:
+          type: integer
+        arrendatario_id:
+          type: integer
+        tipo_espacio:
+          type: string
+          enum: [azotea, fachada, subterraneo, sala_tecnica, terreno]
+        canon_mensual_uf:
+          type: number
+        fecha_inicio:
+          type: string
+          format: date
+        fecha_termino:
+          type: string
+          format: date
+        estado:
+          type: string
+          enum: [borrador, activo, vencido, terminado]
+    
+    Empleado:
+      type: object
+      properties:
+        id:
+          type: integer
+        rut:
+          type: string
+        nombres:
+          type: string
+        apellido_paterno:
+          type: string
+        apellido_materno:
+          type: string
+        fecha_ingreso:
+          type: string
+          format: date
+        tipo_contrato:
+          type: string
+          enum: [indefinido, plazo_fijo, por_obra, honorarios]
+        sueldo_base:
+          type: number
+        estado:
+          type: string
+          enum: [activo, licencia, vacaciones, desvinculado]
+    
+    Liquidacion:
+      type: object
+      properties:
+        id:
+          type: integer
+        empleado_id:
+          type: integer
+        mes:
+          type: integer
+        anio:
+          type: integer
+        sueldo_base:
+          type: number
+        total_haberes:
+          type: number
+        total_descuentos:
+          type: number
+        sueldo_liquido:
+          type: number
+        estado:
+          type: string
+          enum: [borrador, aprobada, pagada]
+    
+    Reunion:
+      type: object
+      properties:
+        id:
+          type: integer
+        edificio_id:
+          type: integer
+        titulo:
+          type: string
+        tipo:
+          type: string
+          enum: [asamblea_ordinaria, asamblea_extraordinaria, comite_administracion, informativa]
+        modalidad:
+          type: string
+          enum: [presencial, telematica, mixta]
+        fecha_inicio:
+          type: string
+          format: date-time
+        estado:
+          type: string
+          enum: [borrador, convocada, en_curso, finalizada, cancelada]
+        quorum_requerido:
+          type: number
+        quorum_alcanzado:
+          type: number
+    
+    SolicitudARCO:
+      type: object
+      properties:
+        id:
+          type: integer
+        numero_solicitud:
+          type: string
+        tipo_derecho:
+          type: string
+          enum: [acceso, rectificacion, cancelacion, oposicion, portabilidad]
+        estado:
+          type: string
+          enum: [recibida, en_verificacion, en_proceso, aprobada, rechazada, completada]
+        fecha_recepcion:
+          type: string
+          format: date-time
+        fecha_limite_respuesta:
+          type: string
+          format: date-time
+
+paths:
+  # ==========================================
+  # AUTENTICACIÓN
+  # ==========================================
+  /auth/login:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Credenciales inválidas
+
+  /auth/register:
+    post:
+      tags: [Autenticación]
+      summary: Registrar nuevo usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, password_confirmation]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                password_confirmation:
+                  type: string
+      responses:
+        '201':
+          description: Usuario creado
+
+  /auth/user:
+    get:
+      tags: [Autenticación]
+      summary: Obtener usuario actual
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Datos del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /auth/logout:
+    post:
+      tags: [Autenticación]
+      summary: Cerrar sesión
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Sesión cerrada
+
+  # ==========================================
+  # DASHBOARD
+  # ==========================================
+  /dashboard/stats:
+    get:
+      tags: [Dashboard]
+      summary: Estadísticas generales
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Estadísticas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_unidades:
+                    type: integer
+                  recaudacion_mes:
+                    type: number
+                  morosidad_total:
+                    type: number
+                  contratos_activos:
+                    type: integer
+                  empleados_activos:
+                    type: integer
+
+  /dashboard/morosidad:
+    get:
+      tags: [Dashboard]
+      summary: Top morosos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limite
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Lista de morosos
+
+  /dashboard/ingresos:
+    get:
+      tags: [Dashboard]
+      summary: Ingresos por período
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: meses
+          in: query
+          schema:
+            type: integer
+            default: 12
+      responses:
+        '200':
+          description: Ingresos mensuales
+
+  /dashboard/alertas:
+    get:
+      tags: [Dashboard]
+      summary: Alertas del sistema
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de alertas
+
+  # ==========================================
+  # EDIFICIOS
+  # ==========================================
+  /edificios:
+    get:
+      tags: [Edificios]
+      summary: Listar edificios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de edificios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Edificio'
+    post:
+      tags: [Edificios]
+      summary: Crear edificio
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Edificio'
+      responses:
+        '201':
+          description: Edificio creado
+
+  /edificios/{id}:
+    get:
+      tags: [Edificios]
+      summary: Obtener edificio
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos del edificio
+    put:
+      tags: [Edificios]
+      summary: Actualizar edificio
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Edificio'
+      responses:
+        '200':
+          description: Edificio actualizado
+    delete:
+      tags: [Edificios]
+      summary: Eliminar edificio
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Edificio eliminado
+
+  /edificios/{id}/unidades:
+    get:
+      tags: [Edificios]
+      summary: Unidades del edificio
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de unidades
+
+  /edificios/{id}/estadisticas:
+    get:
+      tags: [Edificios]
+      summary: Estadísticas del edificio
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Estadísticas
+
+  # ==========================================
+  # UNIDADES
+  # ==========================================
+  /unidades:
+    get:
+      tags: [Unidades]
+      summary: Listar unidades
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: edificio_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de unidades
+    post:
+      tags: [Unidades]
+      summary: Crear unidad
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Unidad'
+      responses:
+        '201':
+          description: Unidad creada
+
+  /unidades/{id}:
+    get:
+      tags: [Unidades]
+      summary: Obtener unidad
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos de la unidad
+    put:
+      tags: [Unidades]
+      summary: Actualizar unidad
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Unidad actualizada
+
+  /unidades/{id}/estado-cuenta:
+    get:
+      tags: [Unidades]
+      summary: Estado de cuenta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Estado de cuenta con boletas pendientes
+
+  # ==========================================
+  # GASTOS COMUNES
+  # ==========================================
+  /gastos-comunes/periodos:
+    get:
+      tags: [Gastos Comunes]
+      summary: Listar períodos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de períodos
+    post:
+      tags: [Gastos Comunes]
+      summary: Crear período
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [edificio_id, mes, anio]
+              properties:
+                edificio_id:
+                  type: integer
+                mes:
+                  type: integer
+                  minimum: 1
+                  maximum: 12
+                anio:
+                  type: integer
+      responses:
+        '201':
+          description: Período creado
+
+  /gastos-comunes/periodos/{id}/generar-boletas:
+    post:
+      tags: [Gastos Comunes]
+      summary: Generar boletas del período
+      description: Genera boletas para todas las unidades del edificio
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Boletas generadas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mensaje:
+                    type: string
+                  boletas_generadas:
+                    type: integer
+
+  /gastos-comunes/boletas:
+    get:
+      tags: [Gastos Comunes]
+      summary: Listar boletas
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: periodo_id
+          in: query
+          schema:
+            type: integer
+        - name: estado
+          in: query
+          schema:
+            type: string
+            enum: [pendiente, parcial, pagada]
+        - name: edificio_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de boletas
+
+  /gastos-comunes/boletas/{id}:
+    get:
+      tags: [Gastos Comunes]
+      summary: Obtener boleta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos de la boleta
+
+  /gastos-comunes/boletas/{id}/pdf:
+    get:
+      tags: [Gastos Comunes]
+      summary: Descargar boleta PDF
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Archivo PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /gastos-comunes/pagos:
+    post:
+      tags: [Gastos Comunes]
+      summary: Registrar pago
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [boleta_id, monto, medio_pago]
+              properties:
+                boleta_id:
+                  type: integer
+                monto:
+                  type: number
+                medio_pago:
+                  type: string
+                  enum: [efectivo, transferencia, cheque, tarjeta, pac, webpay]
+                numero_documento:
+                  type: string
+                observaciones:
+                  type: string
+      responses:
+        '201':
+          description: Pago registrado
+
+  /gastos-comunes/morosidad:
+    get:
+      tags: [Gastos Comunes]
+      summary: Reporte de morosidad
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: edificio_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reporte de morosidad
+
+  # ==========================================
+  # ARRIENDOS
+  # ==========================================
+  /arriendos/contratos:
+    get:
+      tags: [Arriendos]
+      summary: Listar contratos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: estado
+          in: query
+          schema:
+            type: string
+            enum: [borrador, activo, vencido, terminado]
+      responses:
+        '200':
+          description: Lista de contratos
+    post:
+      tags: [Arriendos]
+      summary: Crear contrato
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContratoArriendo'
+      responses:
+        '201':
+          description: Contrato creado
+
+  /arriendos/contratos/{id}:
+    get:
+      tags: [Arriendos]
+      summary: Obtener contrato
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos del contrato
+    put:
+      tags: [Arriendos]
+      summary: Actualizar contrato
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Contrato actualizado
+
+  /arriendos/facturas/generar:
+    post:
+      tags: [Arriendos]
+      summary: Generar facturas del mes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mes, anio]
+              properties:
+                mes:
+                  type: integer
+                anio:
+                  type: integer
+                edificio_id:
+                  type: integer
+      responses:
+        '200':
+          description: Facturas generadas
+
+  /arriendos/facturas:
+    get:
+      tags: [Arriendos]
+      summary: Listar facturas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de facturas
+
+  /arriendos/arrendatarios:
+    get:
+      tags: [Arriendos]
+      summary: Listar arrendatarios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de arrendatarios
+    post:
+      tags: [Arriendos]
+      summary: Crear arrendatario
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Arrendatario creado
+
+  # ==========================================
+  # DISTRIBUCIÓN (Ley 21.713)
+  # ==========================================
+  /distribucion:
+    get:
+      tags: [Distribución]
+      summary: Listar distribuciones
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de distribuciones
+    post:
+      tags: [Distribución]
+      summary: Crear distribución
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [edificio_id, mes, anio, monto_total]
+              properties:
+                edificio_id:
+                  type: integer
+                mes:
+                  type: integer
+                anio:
+                  type: integer
+                monto_total:
+                  type: number
+      responses:
+        '201':
+          description: Distribución creada
+
+  /distribucion/{id}/procesar:
+    post:
+      tags: [Distribución]
+      summary: Procesar distribución
+      description: Calcula montos por unidad según prorrateo (Art. 17 N°3 LIR)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Distribución procesada
+
+  /distribucion/{id}/aprobar:
+    post:
+      tags: [Distribución]
+      summary: Aprobar distribución
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Distribución aprobada
+
+  /distribucion/certificados-renta/generar:
+    post:
+      tags: [Distribución]
+      summary: Generar certificados de renta anuales
+      description: Genera certificados para declaración de impuestos
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [edificio_id, anio]
+              properties:
+                edificio_id:
+                  type: integer
+                anio:
+                  type: integer
+      responses:
+        '200':
+          description: Certificados generados
+
+  /distribucion/certificados-renta/{id}/pdf:
+    get:
+      tags: [Distribución]
+      summary: Descargar certificado PDF
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Archivo PDF
+
+  # ==========================================
+  # RRHH
+  # ==========================================
+  /rrhh/empleados:
+    get:
+      tags: [RRHH]
+      summary: Listar empleados
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de empleados
+    post:
+      tags: [RRHH]
+      summary: Crear empleado
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Empleado'
+      responses:
+        '201':
+          description: Empleado creado
+
+  /rrhh/empleados/{id}:
+    get:
+      tags: [RRHH]
+      summary: Obtener empleado
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos del empleado
+    put:
+      tags: [RRHH]
+      summary: Actualizar empleado
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Empleado actualizado
+
+  /rrhh/liquidaciones/generar:
+    post:
+      tags: [RRHH]
+      summary: Generar liquidación de sueldo
+      description: Calcula AFP, Salud, Cesantía, Impuesto Único con tramos 2025
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [empleado_id, mes, anio]
+              properties:
+                empleado_id:
+                  type: integer
+                mes:
+                  type: integer
+                anio:
+                  type: integer
+      responses:
+        '201':
+          description: Liquidación generada
+
+  /rrhh/liquidaciones:
+    get:
+      tags: [RRHH]
+      summary: Listar liquidaciones
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: mes
+          in: query
+          schema:
+            type: integer
+        - name: anio
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de liquidaciones
+
+  /rrhh/liquidaciones/{id}/pdf:
+    get:
+      tags: [RRHH]
+      summary: Descargar liquidación PDF
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Archivo PDF
+
+  /rrhh/indicadores:
+    get:
+      tags: [RRHH]
+      summary: Indicadores previsionales
+      description: AFP, Isapres, UF, UTM actualizados
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Indicadores
+
+  # ==========================================
+  # CONTABILIDAD
+  # ==========================================
+  /contabilidad/plan-cuentas:
+    get:
+      tags: [Contabilidad]
+      summary: Plan de cuentas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Plan de cuentas
+    post:
+      tags: [Contabilidad]
+      summary: Crear cuenta
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Cuenta creada
+
+  /contabilidad/asientos:
+    get:
+      tags: [Contabilidad]
+      summary: Listar asientos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de asientos
+    post:
+      tags: [Contabilidad]
+      summary: Crear asiento
+      description: Valida que Debe = Haber
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fecha, glosa, lineas]
+              properties:
+                fecha:
+                  type: string
+                  format: date
+                glosa:
+                  type: string
+                lineas:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      cuenta_id:
+                        type: integer
+                      debe:
+                        type: number
+                      haber:
+                        type: number
+      responses:
+        '201':
+          description: Asiento creado
+
+  /contabilidad/libro-diario:
+    get:
+      tags: [Contabilidad]
+      summary: Libro diario
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: desde
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: hasta
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Libro diario
+
+  /contabilidad/libro-mayor/{cuenta_id}:
+    get:
+      tags: [Contabilidad]
+      summary: Libro mayor de una cuenta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: cuenta_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Movimientos de la cuenta
+
+  /contabilidad/balance:
+    get:
+      tags: [Contabilidad]
+      summary: Balance general
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Balance con saldos
+
+  # ==========================================
+  # REUNIONES
+  # ==========================================
+  /reuniones:
+    get:
+      tags: [Reuniones]
+      summary: Listar reuniones
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de reuniones
+    post:
+      tags: [Reuniones]
+      summary: Crear reunión
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reunion'
+      responses:
+        '201':
+          description: Reunión creada
+
+  /reuniones/{id}:
+    get:
+      tags: [Reuniones]
+      summary: Obtener reunión
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos de la reunión
+
+  /reuniones/{id}/convocar:
+    post:
+      tags: [Reuniones]
+      summary: Convocar reunión
+      description: Agrega todos los copropietarios como asistentes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reunión convocada
+
+  /reuniones/{id}/iniciar:
+    post:
+      tags: [Reuniones]
+      summary: Iniciar reunión
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reunión iniciada
+
+  /reuniones/{id}/finalizar:
+    post:
+      tags: [Reuniones]
+      summary: Finalizar reunión
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reunión finalizada
+
+  /reuniones/{id}/votaciones:
+    get:
+      tags: [Reuniones]
+      summary: Listar votaciones
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Votaciones de la reunión
+    post:
+      tags: [Reuniones]
+      summary: Crear votación
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [titulo, tipo]
+              properties:
+                titulo:
+                  type: string
+                descripcion:
+                  type: string
+                tipo:
+                  type: string
+                  enum: [si_no, opcion_multiple]
+                opciones:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Votación creada
+
+  /reuniones/{id}/votaciones/{votacionId}/votar:
+    post:
+      tags: [Reuniones]
+      summary: Registrar voto
+      description: Voto ponderado por prorrateo de la unidad
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: votacionId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [opcion]
+              properties:
+                opcion:
+                  type: string
+      responses:
+        '200':
+          description: Voto registrado
+
+  /reuniones/{id}/acta:
+    get:
+      tags: [Reuniones]
+      summary: Obtener acta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Acta de la reunión
+
+  /reuniones/sala/{uuid}:
+    get:
+      tags: [Reuniones]
+      summary: Acceso a sala pública
+      description: Acceso por UUID para videoconferencia (Jitsi)
+      parameters:
+        - name: uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Datos de la sala
+
+  # ==========================================
+  # LEGAL
+  # ==========================================
+  /legal/consultas:
+    post:
+      tags: [Legal]
+      summary: Consulta al asistente legal
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [consulta]
+              properties:
+                consulta:
+                  type: string
+      responses:
+        '200':
+          description: Respuesta con referencias legales
+
+  /legal/categorias:
+    get:
+      tags: [Legal]
+      summary: Categorías de consultas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de categorías
+
+  /legal/faq:
+    get:
+      tags: [Legal]
+      summary: Preguntas frecuentes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: FAQ legal
+
+  /legal/oficios:
+    get:
+      tags: [Legal]
+      summary: Listar oficios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de oficios
+    post:
+      tags: [Legal]
+      summary: Crear oficio
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Oficio creado
+
+  /legal/oficios/{id}/pdf:
+    get:
+      tags: [Legal]
+      summary: Descargar oficio PDF
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Archivo PDF
+
+  /legal/certificados:
+    get:
+      tags: [Legal]
+      summary: Listar certificados de cumplimiento
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de certificados
+    post:
+      tags: [Legal]
+      summary: Generar certificado
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [edificio_id, tipo]
+              properties:
+                edificio_id:
+                  type: integer
+                tipo:
+                  type: string
+                  enum: [general, tributario, ley_21442, transparencia, deuda]
+      responses:
+        '201':
+          description: Certificado generado
+
+  /legal/verificar/{codigo}:
+    get:
+      tags: [Legal]
+      summary: Verificar certificado público
+      parameters:
+        - name: codigo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Certificado válido
+        '404':
+          description: Certificado no encontrado
+
+  # ==========================================
+  # PROTECCIÓN DE DATOS (Ley 21.719)
+  # ==========================================
+  /privacidad/derecho-acceso:
+    post:
+      tags: [Protección de Datos]
+      summary: Ejercer derecho de acceso
+      description: "Titular solicita conocer qué datos se tratan (Art. 4)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rut, email]
+              properties:
+                rut:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                motivo:
+                  type: string
+      responses:
+        '201':
+          description: Solicitud recibida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  numero_solicitud:
+                    type: string
+                  plazo_respuesta:
+                    type: string
+                    example: "10 días hábiles"
+
+  /privacidad/derecho-rectificacion:
+    post:
+      tags: [Protección de Datos]
+      summary: Ejercer derecho de rectificación
+      description: "Corregir datos inexactos (Art. 5)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rut, email, datos_incorrectos, datos_correctos]
+              properties:
+                rut:
+                  type: string
+                email:
+                  type: string
+                datos_incorrectos:
+                  type: object
+                datos_correctos:
+                  type: object
+      responses:
+        '201':
+          description: Solicitud recibida
+
+  /privacidad/derecho-cancelacion:
+    post:
+      tags: [Protección de Datos]
+      summary: Ejercer derecho de cancelación
+      description: "Solicitar eliminación de datos (Art. 6)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rut, email, motivo]
+              properties:
+                rut:
+                  type: string
+                email:
+                  type: string
+                motivo:
+                  type: string
+      responses:
+        '201':
+          description: Solicitud recibida
+
+  /privacidad/derecho-oposicion:
+    post:
+      tags: [Protección de Datos]
+      summary: Ejercer derecho de oposición
+      description: "Oponerse a tratamiento (Art. 7)"
+      responses:
+        '201':
+          description: Solicitud recibida
+
+  /privacidad/derecho-portabilidad:
+    post:
+      tags: [Protección de Datos]
+      summary: Ejercer derecho de portabilidad
+      description: "Obtener datos en formato estructurado (Art. 8)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rut, email]
+              properties:
+                rut:
+                  type: string
+                email:
+                  type: string
+                formato_preferido:
+                  type: string
+                  enum: [json, csv, xml]
+      responses:
+        '201':
+          description: Solicitud recibida
+
+  /privacidad/solicitud/{numero}:
+    get:
+      tags: [Protección de Datos]
+      summary: Consultar estado de solicitud ARCO
+      parameters:
+        - name: numero
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Estado de la solicitud
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SolicitudARCO'
+
+  /privacidad/politica:
+    get:
+      tags: [Protección de Datos]
+      summary: Política de privacidad vigente
+      responses:
+        '200':
+          description: Política de privacidad
+
+  /proteccion-datos/dashboard:
+    get:
+      tags: [Protección de Datos]
+      summary: Dashboard de cumplimiento
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Métricas de cumplimiento
+
+  /proteccion-datos/solicitudes:
+    get:
+      tags: [Protección de Datos]
+      summary: Listar solicitudes ARCO (admin)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de solicitudes
+
+  /proteccion-datos/solicitudes/{id}:
+    put:
+      tags: [Protección de Datos]
+      summary: Procesar solicitud ARCO
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estado, respuesta]
+              properties:
+                estado:
+                  type: string
+                  enum: [aprobada, rechazada, completada]
+                respuesta:
+                  type: string
+      responses:
+        '200':
+          description: Solicitud procesada
+
+  /proteccion-datos/consentimientos:
+    post:
+      tags: [Protección de Datos]
+      summary: Registrar consentimiento
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Consentimiento registrado
+
+  /proteccion-datos/tratamientos:
+    get:
+      tags: [Protección de Datos]
+      summary: Listar tratamientos de datos
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Registro de tratamientos
+    post:
+      tags: [Protección de Datos]
+      summary: Crear tratamiento
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Tratamiento creado
+
+  /proteccion-datos/brechas:
+    get:
+      tags: [Protección de Datos]
+      summary: Listar brechas de seguridad
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de brechas
+    post:
+      tags: [Protección de Datos]
+      summary: Reportar brecha
+      description: "Notificar a Agencia en 72h si alto riesgo (Art. 14 ter)"
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Brecha reportada
+
+  /proteccion-datos/anonimizar:
+    post:
+      tags: [Protección de Datos]
+      summary: Anonimizar datos de persona
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [persona_id, motivo]
+              properties:
+                persona_id:
+                  type: integer
+                motivo:
+                  type: string
+      responses:
+        '200':
+          description: Datos anonimizados

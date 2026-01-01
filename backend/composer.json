@@ -1,11 +1,11 @@
 {
     "name": "datapolis/datapolis-pro",
     "type": "project",
-    "description": "DATAPOLIS PRO - Sistema de Gestión Integral para Comunidades",
+    "description": "DATAPOLIS | Gestión Integral de Copropiedades",
     "keywords": ["laravel", "datapolis", "condominio", "administracion"],
     "license": "proprietary",
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
         "laravel/framework": "^11.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",

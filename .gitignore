@@ -1,2 +1,9 @@
-node_modules/
+/node_modules
+/vendor
 .env
+.env.backup
+*.log
+.DS_Store
+backend/storage/logs/*
+frontend/dist
+frontend/node_modules
